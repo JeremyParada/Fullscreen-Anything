@@ -563,7 +563,9 @@ function initializeTabCinema() { TC = {
 		this.state = "normal";
 		
 		// stop observing DOM changes
-		this.removedObserver.disconnect();
+		if (this.removedObserver && typeof this.removedObserver.disconnect === 'function') {
+			this.removedObserver.disconnect();
+		}
 		
 		// restore object parameters
 		if (typeof this.target.scale !== "undefined") {
@@ -751,16 +753,31 @@ function initializeTabCinema() { TC = {
 	
 	// handle changes in the document (such as occur in playlists when the video is replaced)
 	handleMutations: function(mutations) {
-		if (!TC.hasClass(document.body,"tc-show")) {
+		// Resolve hasClass safely even if TC.hasClass is unavailable
+		var hasClassFn = (typeof TC.hasClass === 'function') ? TC.hasClass : function(node, selector) {
+			return !!(node && node.nodeType === 1 && node.classList && node.classList.contains(selector));
+		};
+
+		// Schedule safe handling for removed video/content
+		var scheduleHandleRemoved = function() {
 			window.clearTimeout(TC.handleVideoRemoveTimeout);
-			TC.handleVideoRemoveTimeout = window.setTimeout(function() {TC.handleVideoRemoved()},100);
+			if (typeof TC.handleVideoRemoved === 'function') {
+				TC.handleVideoRemoveTimeout = window.setTimeout(function() { TC.handleVideoRemoved(); }, 100);
+			}
+			else {
+				// Fallback: re-scan to recover state without breaking
+				TC.handleVideoRemoveTimeout = window.setTimeout(function() { try { TC.findVideos([]); } catch(e) {} }, 100);
+			}
+		};
+
+		if (!hasClassFn(document.body, "tc-show")) {
+			scheduleHandleRemoved();
 		}
 		else {
 			mutations.forEach(function(mutation) {
 				for (var i in mutation.removedNodes) {
-					if (TC.hasClass(mutation.removedNodes[i],'tc-show')) {
-						window.clearTimeout(TC.handleVideoRemoveTimeout);
-						TC.handleVideoRemoveTimeout = window.setTimeout(function() {TC.handleVideoRemoved()},100);
+					if (hasClassFn(mutation.removedNodes[i], 'tc-show')) {
+						scheduleHandleRemoved();
 					}
 				}
 			});
@@ -1120,8 +1137,10 @@ function initializeTabCinema() { TC = {
 				this.video.removeEventListener('play',this.updateState);
 				this.video.removeEventListener('pause',this.updateState);
 				
-				// remove controls from DOM tree
-				this.container.parentNode.removeChild(this.container);
+				// remove controls from DOM tree (guard against null parent)
+				if (this.container && this.container.parentNode) {
+					this.container.parentNode.removeChild(this.container);
+				}
 				html5controls = null;
 			}
 		};
