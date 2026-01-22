@@ -24,12 +24,12 @@ chrome.action.onClicked.addListener(async (tab) => {
     try {
       // If the receiving end does not exist, inject assets then retry
       await chrome.scripting.insertCSS({
-        target: { tabId: tab.id, allFrames: true },
+        target: { tabId: tab.id, frameIds: [0] },
         files: ["css/style.css"]
       });
 
       await chrome.scripting.executeScript({
-        target: { tabId: tab.id, allFrames: true },
+        target: { tabId: tab.id, frameIds: [0] },
         files: ["js/content.js"]
       });
 
