@@ -1,26 +1,41 @@
+function sendToggle(tabId) {
+  return new Promise((resolve, reject) => {
+    try {
+      chrome.tabs.sendMessage(tabId, { type: "browserAction", data: {} }, () => {
+        if (chrome.runtime.lastError) {
+          return reject(chrome.runtime.lastError);
+        }
+        resolve();
+      });
+    } catch (err) {
+      reject(err);
+    }
+  });
+}
+
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab || !tab.id) {
     return;
   }
   try {
-    // Inject CSS across all frames to ensure consistent styling
-    await chrome.scripting.insertCSS({
-      target: { tabId: tab.id, allFrames: true },
-      files: ["css/style.css"]
-    });
+    // First, try to send the toggle message without reinjecting
+    await sendToggle(tab.id);
+  } catch (_) {
+    try {
+      // If the receiving end does not exist, inject assets then retry
+      await chrome.scripting.insertCSS({
+        target: { tabId: tab.id, allFrames: true },
+        files: ["css/style.css"]
+      });
 
-    // Inject the content script programmatically in response to user gesture
-    await chrome.scripting.executeScript({
-      target: { tabId: tab.id, allFrames: true },
-      files: ["js/content.js"]
-    });
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id, allFrames: true },
+        files: ["js/content.js"]
+      });
 
-    // Notify the top frame content script to toggle behavior
-    await chrome.tabs.sendMessage(tab.id, {
-      type: "browserAction",
-      data: {}
-    });
-  } catch (e) {
-    console.error("Injection or messaging failed", e);
+      await sendToggle(tab.id);
+    } catch (e) {
+      console.error("Injection or messaging failed", e);
+    }
   }
 });
