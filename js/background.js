@@ -3,7 +3,7 @@ function sendToggle(tabId) {
     try {
       chrome.tabs.sendMessage(tabId, { type: "browserAction", data: {} }, () => {
         if (chrome.runtime.lastError) {
-          return reject(chrome.runtime.lastError);
+          return reject(new Error(chrome.runtime.lastError.message || String(chrome.runtime.lastError)));
         }
         resolve();
       });
@@ -15,6 +15,12 @@ function sendToggle(tabId) {
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (!tab || !tab.id) {
+    return;
+  }
+  // Avoid restricted schemes where injection is not allowed
+  const url = tab.url || "";
+  if (/^(chrome|edge|about|chrome-extension):/i.test(url)) {
+    console.warn("Skipping injection on restricted URL:", url);
     return;
   }
   try {
@@ -35,7 +41,8 @@ chrome.action.onClicked.addListener(async (tab) => {
 
       await sendToggle(tab.id);
     } catch (e) {
-      console.error("Injection or messaging failed", e);
+      const msg = (e && e.message) ? e.message : String(e);
+      console.error("Injection or messaging failed:", msg);
     }
   }
 });
