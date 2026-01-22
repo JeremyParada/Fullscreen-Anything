@@ -1,0 +1,12 @@
+chrome.action.onClicked.addListener((tab) => {
+  chrome.tabs.sendMessage(
+    tab.id,
+    {
+      type: "browserAction",
+      data: {}
+    },
+    () => {
+      // message callback
+    }
+  );
+});
