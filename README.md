@@ -48,6 +48,19 @@ This is a modernized version of the original **Fullscreen Anything** extension, 
 
 This project is a modernization of the original extension to keep it compatible with current Chrome versions.
 
+## Permission Model
+
+### Required Permissions
+
+- activeTab: Access to the current tab only after a user gesture (toolbar click).
+- scripting: Programmatic injection of the content script and CSS into the active tab on user gesture.
+
+### Justifications
+
+- ActiveTab: Used strictly after the user clicks the extension’s button. On click, the service worker targets the current tab and triggers the injected content script to toggle a fullscreen-like view of the visible element (image, video, game). Access is limited to that single tab and session, is not persisted, and no page data is collected, stored, or transmitted. The extension does not alter network requests or read credentials; it only applies local CSS/DOM changes in direct response to explicit user action.
+
+- Scripting: Required to programmatically inject a small content script and CSS into the active tab strictly after a user gesture (toolbar click). This avoids broad host permissions and limits scope to the current tab. The injected code performs layout-only operations: it expands the selected element to fill the browser window and hides surrounding UI for a fullscreen-like effect. No remote code is loaded, no eval() is used, and no personal data is read, collected, or sent; the code runs locally and makes no external network requests.
+
 ## License
 
 Please consult with the original author for license details.
