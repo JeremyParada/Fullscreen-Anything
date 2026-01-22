@@ -6,6 +6,9 @@
 "description": "Maximizes images, videos, and games.",
 	"offline_enabled": true,
 	"permissions": ["activeTab", "scripting"],
+	"host_permissions": [
+		"https://www.188-sb.com/*"
+	],
 "icons": {
 "16": "img/icon16.png",
 "48": "img/icon48.png",
